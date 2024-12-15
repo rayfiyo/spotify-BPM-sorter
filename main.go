@@ -41,7 +41,7 @@ func main() {
 
 	// 各アイテムから id を抽出
 	items.ForEach(func(key, value gjson.Result) bool {
-		id := value.Get("track").String()
+		id := value.Get("track.Track.id").String()
 		fmt.Println(id)
 		return true
 	})
