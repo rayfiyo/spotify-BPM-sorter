@@ -6,5 +6,5 @@
 ## Thanks
 
 - [Dashboard \_ Spotify for Developers](https://developer.spotify.com/dashboard)
-- [Web API \_ Spotify for Developers](ttps://developer.spotify.com/documentation/web-api)
+- [Web API \_ Spotify for Developers](https://developer.spotify.com/documentation/web-api)
 - [Go で Spotify Web API を叩いてみる](https://zenn.dev/shimpo/articles/trying-spotify-api-with-go)
