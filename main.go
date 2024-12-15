@@ -1,78 +1,48 @@
 package main
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 
-	"github.com/joho/godotenv"
+	"github.com/rayfiyo/spotify-BPM-sorter/cmd"
+	"github.com/tidwall/gjson"
 	"github.com/zmb3/spotify/v2"
-	spotifyauth "github.com/zmb3/spotify/v2/auth"
-	"golang.org/x/oauth2/clientcredentials"
-)
-
-type SpotifyClients struct {
-	ID      string
-	Sercret string
-}
-
-const (
-	envSpotifyID     = "SPOTIFY_ID"
-	envSpotifySecret = "SPOTIFY_SECRET"
 )
 
 func main() {
-	ctx, client, err := Auth()
+	// 認証とコンテキスト作成
+	ctx, client, err := cmd.Auth()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// 実行時引数からプレイリストのIDを取得
 	if len(os.Args) < 2 {
 		log.Fatal("Expected index out of range. Insufficient argument missing.")
 	}
-
 	playlistID := spotify.ID(os.Args[1])
+
+	// プレイリストアイテムを取得
 	result, err := client.GetPlaylistItems(ctx, playlistID)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(result)
-}
-
-func Auth() (context.Context, *spotify.Client, error) {
-	spotifyClients, err := LoadEnv()
+	// プレイリストアイテムを JSON に変換
+	jsonData, err := json.Marshal(result.Items)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to marshal playlist items: %v", err)
 	}
 
-	ctx := context.Background()
-	config := &clientcredentials.Config{
-		ClientID:     spotifyClients.ID,
-		ClientSecret: spotifyClients.Sercret,
-		TokenURL:     spotifyauth.TokenURL,
-	}
-	token, err := config.Token(ctx)
-	if err != nil {
-		log.Fatalf("Failed to retrieve token: %v", err)
-	}
+	// JSON データを解析
+	items := gjson.ParseBytes(jsonData)
 
-	httpClient := spotifyauth.New().Client(ctx, token)
-
-	return ctx, spotify.New(httpClient), nil
-}
-
-func LoadEnv() (*SpotifyClients, error) {
-	if err := godotenv.Load(); err != nil {
-		return nil, fmt.Errorf("failed to load .env file: %w", err)
-	}
-
-	clientID := os.Getenv(envSpotifyID)
-	clientSecret := os.Getenv(envSpotifySecret)
-
-	return &SpotifyClients{
-		ID:      clientID,
-		Sercret: clientSecret,
-	}, nil
+	// 各アイテムから id を抽出
+	items.ForEach(func(key, value gjson.Result) bool {
+		id := value.Get("track.Track.id").String()
+		fmt.Println(id)
+		return true
+	})
 }
