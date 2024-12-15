@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	// "strconv"
 
 	"github.com/joho/godotenv"
+	"github.com/tidwall/gjson"
 	"github.com/zmb3/spotify/v2"
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
 	"golang.org/x/oauth2/clientcredentials"
@@ -38,7 +41,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(result)
+	jsonData, err := json.Marshal(result.Items)
+	if err != nil {
+		log.Fatalf("Failed to marshal playlist items: %v", err)
+	}
+
+	items := gjson.ParseBytes(jsonData)
+
+	items.ForEach(func(key, value gjson.Result) bool {
+		id := value.Get("track.id").String()
+		fmt.Println(id)
+		return true
+	})
 }
 
 func Auth() (context.Context, *spotify.Client, error) {
