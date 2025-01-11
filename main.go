@@ -43,6 +43,7 @@ func main() {
 	items.ForEach(func(key, value gjson.Result) bool {
 		id := value.Get("track.Track.id").String()
 		fmt.Println(id)
+		// fmt.Printf("%s: %s\n", value.Get("track.Track.name").String(), value.Get("added_at").String())
 		return true
 	})
 }
