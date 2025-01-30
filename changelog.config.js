@@ -9,7 +9,7 @@ module.exports = {
     "refactor",
     "setting",
     "style",
-    "ci",
+    "cicd",
     "perf",
     "add",
     "del",
@@ -19,10 +19,10 @@ module.exports = {
   questions: ["type", "scope", "subject", "issues"],
   scopes: [],
   types: {
-    ci: {
-      description: "🎡CIに関する更新",
+    cicd: {
+      description: "🎡CI/CDに関する更新",
       emoji: "🎡",
-      value: "ci",
+      value: "cicd",
     },
     docs: {
       description: "📄ドキュメント更新",
