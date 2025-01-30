@@ -25,25 +25,32 @@ func main() {
 	playlistID := spotify.ID(os.Args[1])
 
 	// プレイリストアイテムを取得
-	result, err := client.GetPlaylistItems(ctx, playlistID)
+	playlist, err := client.GetPlaylistItems(ctx, playlistID)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// プレイリストアイテムを JSON に変換
-	jsonData, err := json.Marshal(result.Items)
+	itemsJson, err := json.Marshal(playlist.Items)
 	if err != nil {
 		log.Fatalf("Failed to marshal playlist items: %v", err)
 	}
 
 	// JSON データを解析
-	items := gjson.ParseBytes(jsonData)
+	items := gjson.ParseBytes(itemsJson)
 
 	// 各アイテムから id を抽出
 	items.ForEach(func(key, value gjson.Result) bool {
+		// トラック id
 		id := value.Get("track.Track.id").String()
 		fmt.Println(id)
-		// fmt.Printf("%s: %s\n", value.Get("track.Track.name").String(), value.Get("added_at").String())
+
+		// トラック名
+		fmt.Println("    " + value.Get("track.Track.name").String())
+
+		// 追加日時
+		fmt.Println("    " + value.Get("added_at").String())
+
 		return true
 	})
 }
