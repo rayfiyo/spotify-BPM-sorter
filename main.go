@@ -33,7 +33,7 @@ func main() {
 	// プレイリストのトラック要素を JSON に変換
 	tracksJson, err := json.Marshal(playlist.Tracks)
 	if err != nil {
-		log.Fatalf("Failed to marshal playlist items: %v", err)
+		log.Fatalf("Failed to marshal playlist tracks: %v", err)
 	}
 
 	// JSON データを解析し，items キーのみ抽出
@@ -53,4 +53,15 @@ func main() {
 
 		return true
 	})
+
+	// プレイリストフォロワーを JSON に変換
+	followersJson, err := json.Marshal(playlist.Followers)
+	if err != nil {
+		log.Fatalf("Failed to marshal playlist followers: %v", err)
+	}
+
+	// プレイリストフォロワーを出力（href は現在未実装のためパースせずに出力）
+    // 特定のユーザーが特定のプレイリストをフォローしているか調べる方法は開発者オプションとして API あり
+    // https://developer.spotify.com/documentation/web-api/reference/check-current-user-follows
+	fmt.Println("Followers: "+string(followersJson))
 }
