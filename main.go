@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/rayfiyo/spotify-BPM-sorter/cmd"
-	"github.com/tidwall/gjson"
 	"github.com/zmb3/spotify/v2"
 )
 
@@ -30,20 +30,79 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// プレイリストアイテムを JSON に変換
-	jsonData, err := json.Marshal(result.Items)
-	if err != nil {
-		log.Fatalf("Failed to marshal playlist items: %v", err)
+	type trackInfo struct {
+		Name string
+		ID   spotify.ID
 	}
 
-	// JSON データを解析
-	items := gjson.ParseBytes(jsonData)
+	var tracks []trackInfo
+	for _, item := range result.Items {
+		track := item.Track.Track
+		if track == nil {
+			continue
+		}
+		if track.ID == "" {
+			continue
+		}
+		tracks = append(tracks, trackInfo{
+			Name: track.Name,
+			ID:   track.ID,
+		})
+	}
 
-	// 各アイテムから id を抽出
-	items.ForEach(func(key, value gjson.Result) bool {
-		id := value.Get("track.Track.id").String()
-		fmt.Println(id)
-		// fmt.Printf("%s: %s\n", value.Get("track.Track.name").String(), value.Get("added_at").String())
-		return true
-	})
+	if len(tracks) == 0 {
+		log.Println("プレイリストに有効なトラックが見つかりませんでした")
+		return
+	}
+
+	const batchSize = 100
+	featureByID := make(map[spotify.ID]*spotify.AudioFeatures)
+
+	for start := 0; start < len(tracks); start += batchSize {
+		end := start + batchSize
+		end = min(end, len(tracks))
+
+		ids := make([]spotify.ID, end-start)
+		for i := start; i < end; i++ {
+			ids[i-start] = tracks[i].ID
+		}
+
+		audioFeatures, err := client.GetAudioFeatures(ctx, ids...)
+		if err != nil {
+			var apiErr spotify.Error
+			if errors.As(err, &apiErr) && apiErr.Status == http.StatusForbidden {
+				log.Printf("403 Forbidden が発生したため個別に特徴量を取得します: %v", ids)
+				for _, id := range ids {
+					features, singleErr := client.GetAudioFeatures(ctx, id)
+					if singleErr != nil {
+						log.Printf("トラック %s の特徴量取得に失敗したためスキップします: %v", id, singleErr)
+						continue
+					}
+					for _, feature := range features {
+						if feature == nil {
+							continue
+						}
+						featureByID[feature.ID] = feature
+					}
+				}
+				continue
+			}
+			log.Fatalf("オーディオ特徴量の取得に失敗しました: %v\n%v", err, ids)
+		}
+
+		for _, feature := range audioFeatures {
+			if feature == nil {
+				continue
+			}
+			featureByID[feature.ID] = feature
+		}
+	}
+
+	for _, track := range tracks {
+		tempo := "-"
+		if feature, ok := featureByID[track.ID]; ok && feature != nil {
+			tempo = fmt.Sprintf("%.2f", feature.Tempo)
+		}
+		fmt.Printf("%s, %s, %s\n", track.Name, tempo, track.ID)
+	}
 }
